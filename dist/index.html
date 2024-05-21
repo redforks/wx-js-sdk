@@ -1,0 +1,18 @@
+<html>
+  <head>
+    
+<script type="module">
+import init, * as bindings from '/wx-js-sdk-20163e4ae6d11253.js';
+const wasm = await init('/wx-js-sdk-20163e4ae6d11253_bg.wasm');
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  
+<link rel="modulepreload" href="/wx-js-sdk-20163e4ae6d11253.js" crossorigin=anonymous integrity="sha384-orqAkur3WYBRBZYif4DCl5O5g6QlsTFFpLmBDyxKVM84sBhCsABD4nQdSJ7CXnt5">
+<link rel="preload" href="/wx-js-sdk-20163e4ae6d11253_bg.wasm" crossorigin=anonymous integrity="sha384-W+31QNsSQXgAIpK6c3DnXrBhlLMDvGyAxx+q9B+V/JNuljEIG4YWXdmChBW7OIxC" as="fetch" type="application/wasm"></head>
+</html>

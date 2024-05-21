@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <script src="http://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <script src="/wx-jsapi-703a8281654889bf.js"></script>
+    
+<script type="module">
+import init, * as bindings from '/demo-app-2d95dbe638be8ccc.js';
+const wasm = await init('/demo-app-2d95dbe638be8ccc_bg.wasm');
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  </head>
+</html>

@@ -1,0 +1,10 @@
+[[proxy]]
+backend = "http://127.0.0.1:2345/api"
+no_system_proxy = true
+
+[[proxy]]
+backend = "http://127.0.0.1:2345/wx"
+no_system_proxy = true
+
+[build]
+no_sri = true
