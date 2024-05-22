@@ -1,10 +1,10 @@
-use gloo_console::{error, log};
 use gloo_net::http::Request;
+use js_sys::wasm_bindgen::JsValue;
 use serde::Deserialize;
 use serde_wasm_bindgen::to_value as to_js_value;
 use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::window;
+use web_sys::{window, Document, HtmlElement};
 use wx_js_sdk::{check_js_api, Config};
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
@@ -12,13 +12,7 @@ type Result<T> = std::result::Result<T, snafu::Whatever>;
 fn current_url_without_hash() -> Result<String> {
     let w = window().whatever_context("get window global object")?;
     let location = w.location();
-    let url = match location.href() {
-        Err(e) => whatever!(
-            "get current url failed: {}",
-            js_sys::Error::from(e).message()
-        ),
-        Ok(v) => v,
-    };
+    let url = whatever!(handle_js_error(location.href()), "get current page url");
     let url = url
         .split('#')
         .next()
@@ -27,6 +21,7 @@ fn current_url_without_hash() -> Result<String> {
 }
 
 fn main() {
+    console_error_panic_hook::set_once();
     spawn_local(async { handle_err(go().await) });
 }
 
@@ -34,7 +29,7 @@ fn handle_err(rv: Result<()>) {
     match rv {
         Ok(_) => {}
         Err(e) => {
-            error!(format!("{:?}", e));
+            error_to_dom(&format!("{:?}", e));
         }
     }
 }
@@ -49,11 +44,11 @@ pub struct SignUrlResponse {
 async fn go() -> Result<()> {
     // Get current browser url
     let resp = sign_url().await?;
-    log!(format!("{:?}", &resp));
+    log_to_dom(&format!("{:?}", &resp));
     config_jsapi(resp).await?;
-    log!("config jsapi succeed");
+    log_to_dom("config jsapi succeed");
     do_check_js_api().await?;
-    log!("check jsapi succeed");
+    log_to_dom("check jsapi succeed");
 
     Ok(())
 }
@@ -61,7 +56,7 @@ async fn go() -> Result<()> {
 async fn config_jsapi(sign: SignUrlResponse) -> Result<()> {
     let config = Config {
         debug: true,
-        app_id: "wx1234567890".to_owned(),
+        app_id: "wx823ba6aecdee1404".to_owned(),
         timestamp: sign.timestamp,
         nonce_str: sign.noncestr,
         signature: sign.sign,
@@ -81,18 +76,15 @@ async fn config_jsapi(sign: SignUrlResponse) -> Result<()> {
 }
 
 async fn do_check_js_api() -> Result<()> {
-    match check_js_api(vec!["chooseImage".to_owned()]).await {
-        Err(err) => {
-            whatever!("check js-api: {:?}", err);
-        }
-        _ => (),
+    if let Err(err) = check_js_api(vec!["chooseImage".to_owned()]).await {
+        whatever!("check js-api: {:?}", err);
     }
     Ok(())
 }
 
 async fn sign_url() -> Result<SignUrlResponse> {
     let url = current_url_without_hash()?;
-    log!("Sign url", &url);
+    log_to_dom(&format!("Sign url: {}", &url));
     let req = whatever!(
         Request::post("/api/wx/jsapi/sign-url").body(url),
         "create request"
@@ -100,4 +92,44 @@ async fn sign_url() -> Result<SignUrlResponse> {
     let resp = whatever!(req.send().await, "send request");
     let resp = whatever!(resp.json::<SignUrlResponse>().await, "decode response");
     Ok(resp)
+}
+
+fn document() -> Result<Document> {
+    let w = window().whatever_context("get window global object")?;
+    w.document().whatever_context("get document")
+}
+
+fn body(doc: &Document) -> Result<HtmlElement> {
+    let r = doc.body().whatever_context("get body")?;
+    Ok(r)
+}
+
+fn _log_to_dom(s: &str) -> Result<()> {
+    let doc = document()?;
+    let body = body(&doc)?;
+    let p = whatever!(
+        handle_js_error(doc.create_element("p")),
+        "Create <p> element"
+    );
+    p.set_text_content(Some(s));
+    whatever!(handle_js_error(body.append_child(&p)), "Append p node");
+    Ok(())
+}
+
+fn handle_js_error<T>(v: std::result::Result<T, JsValue>) -> Result<T> {
+    match v {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            whatever!("{}", js_sys::Error::from(e).message())
+        }
+    }
+}
+
+fn log_to_dom(s: &str) {
+    handle_err(_log_to_dom(s))
+}
+
+fn error_to_dom(s: &str) {
+    // TODO: set different css
+    log_to_dom(s)
 }

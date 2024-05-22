@@ -8,3 +8,4 @@ no_system_proxy = true
 
 [build]
 no_sri = true
+public_url = "/test/wx-jsapi"
