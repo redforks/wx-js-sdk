@@ -46,16 +46,19 @@ pub struct SignUrlResponse {
 async fn go() -> Result<()> {
     // Get current browser url
     let resp = sign_url().await?;
-    log_to_dom(&format!("{:?}", &resp));
+    log(&format!("{:?}", &resp));
     config_jsapi(resp).await?;
 
-    log_to_dom("choose image...");
-    let local_id = choose_image().await?;
-    log_to_dom("choose image succeed");
+    log("choose image...");
+    if let Some(local_id) = choose_image().await? {
+        log("choose image succeed");
 
-    log_to_dom("Upload image...");
-    let _server_id = upload_image(local_id).await?;
-    log_to_dom("upload image succeed");
+        log("Upload image...");
+        let _server_id = upload_image(local_id).await?;
+        log("upload image succeed");
+    } else {
+        log("user cancelled");
+    }
 
     Ok(())
 }
@@ -80,7 +83,7 @@ async fn config_jsapi(sign: SignUrlResponse) -> Result<()> {
 
 async fn sign_url() -> Result<SignUrlResponse> {
     let url = current_url_without_hash()?;
-    log_to_dom(&format!("Sign url: {}", &url));
+    log(&format!("Sign url: {}", &url));
     let req = whatever!(
         Request::post("/api/wx/jsapi/sign-url").body(url),
         "create request"
@@ -121,27 +124,25 @@ fn handle_js_error<T>(v: std::result::Result<T, JsValue>) -> Result<T> {
     }
 }
 
-fn log_to_dom(s: &str) {
+fn log(s: &str) {
     handle_err(_log_to_dom(s))
 }
 
 fn error_to_dom(s: &str) {
     // TODO: set different css
-    log_to_dom(s)
+    log(s)
 }
 
-async fn choose_image() -> Result<String> {
+async fn choose_image() -> Result<Option<String>> {
     let options = ChooseImageOptions { count: 1 };
     let ids = whatever!(wx_js_sdk::choose_image(&options).await, "choose image");
-    let mut ids = ids.local_ids;
-    log_to_dom(&format!("{:?}", ids));
-    let r = ids.remove(0);
-    Ok(r)
+    log(&format!("{:?}", ids));
+    Ok(ids.and_then(|ids| ids.local_ids.first().cloned()))
 }
 
 async fn upload_image(local_id: String) -> Result<String> {
     let options = UploadImageOptions { local_id };
     let res = whatever!(wx_js_sdk::upload_image(&options).await, "upload image");
-    log_to_dom(&format!("{:?}", &res));
+    log(&format!("{:?}", &res));
     Ok(res.server_id)
 }

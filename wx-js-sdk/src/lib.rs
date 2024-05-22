@@ -49,9 +49,29 @@ impl<T: DeserializeOwned> WxResponse<T> {
         }
     }
 
+    /// Like into_result, but map :cancel error to `Ok(None)`.
+    pub fn into_cancel_result(self) -> Result<Option<T>, JSApiError> {
+        if self.err_msg.ends_with(":ok") {
+            Ok(Some(
+                self.value.whatever_context("Should have value on Ok")?,
+            ))
+        } else if self.err_msg.ends_with(":cancel") {
+            Ok(None)
+        } else {
+            Err(JSApiError::ApiError {
+                message: self.err_msg,
+            })
+        }
+    }
+
     pub fn js_into_result(val: JsValue) -> Result<T, JSApiError> {
         let v = Self::from_js(val)?;
         v.into_result()
+    }
+
+    pub fn js_into_cancel_result(val: JsValue) -> Result<Option<T>, JSApiError> {
+        let v = Self::from_js(val)?;
+        v.into_cancel_result()
     }
 
     fn from_js(val: JsValue) -> Result<Self, JSApiError> {
@@ -59,7 +79,7 @@ impl<T: DeserializeOwned> WxResponse<T> {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ChooseImageResult {
     #[serde(rename = "localIds")]
     pub local_ids: Vec<String>,
@@ -121,12 +141,15 @@ pub async fn config(options: &Config) -> Result<(), JSApiError> {
     }
 }
 
-pub async fn choose_image(options: &ChooseImageOptions) -> Result<ChooseImageResult, JSApiError> {
+/// Choose image, returns local_id, return `Ok(None)` if user cancel the operation.
+pub async fn choose_image(
+    options: &ChooseImageOptions,
+) -> Result<Option<ChooseImageResult>, JSApiError> {
     {
         async move {
             let options = whatever!(to_value(&options), "options to js");
             let rv = inner::choose_image(options).await;
-            WxResponse::<ChooseImageResult>::js_into_result(rv)
+            WxResponse::<ChooseImageResult>::js_into_cancel_result(rv)
         }
     }
     .await
