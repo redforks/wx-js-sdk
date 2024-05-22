@@ -6,8 +6,7 @@ use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, Document, HtmlElement};
 use wx_js_sdk::{
-    check_js_api, ChooseImageOptions, ChooseImageResult, Config, UploadImageOptios,
-    UploadImageResult,
+    ChooseImageOptions, ChooseImageResult, Config, UploadImageOptios, UploadImageResult,
 };
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
@@ -32,7 +31,7 @@ fn handle_err(rv: Result<()>) {
     match rv {
         Ok(_) => {}
         Err(e) => {
-            error_to_dom(&format!("{:?}", e));
+            error_to_dom(&format!("Failed: {:?}", e));
         }
     }
 }
@@ -49,9 +48,6 @@ async fn go() -> Result<()> {
     let resp = sign_url().await?;
     log_to_dom(&format!("{:?}", &resp));
     config_jsapi(resp).await?;
-    log_to_dom("config jsapi succeed");
-    do_check_js_api().await?;
-    log_to_dom("check jsapi succeed");
 
     log_to_dom("choose image...");
     let local_id = choose_image().await?;
@@ -78,18 +74,7 @@ async fn config_jsapi(sign: SignUrlResponse) -> Result<()> {
         ],
     };
 
-    if let Err(err) =
-        wx_js_sdk::config(to_js_value(&config).whatever_context("config object to js")?).await
-    {
-        whatever!("config failed: {:?}", err);
-    }
-    Ok(())
-}
-
-async fn do_check_js_api() -> Result<()> {
-    if let Err(err) = check_js_api(vec!["chooseImage".to_owned()]).await {
-        whatever!("check js-api: {:?}", err);
-    }
+    whatever!(wx_js_sdk::config(&config).await, "config");
     Ok(())
 }
 
@@ -147,13 +132,8 @@ fn error_to_dom(s: &str) {
 
 async fn choose_image() -> Result<String> {
     let options = ChooseImageOptions { count: 1 };
-    let options = whatever!(to_js_value(&options), "options to js");
-    let ids = handle_js_error(wx_js_sdk::choose_image(options).await)?;
-    let mut ids = whatever!(
-        from_js_value::<ChooseImageResult>(ids),
-        "convert choose image result"
-    )
-    .local_ids;
+    let ids = whatever!(wx_js_sdk::choose_image(&options).await, "choose image");
+    let mut ids = ids.local_ids;
     log_to_dom(&format!("{:?}", ids));
     let r = ids.remove(0);
     Ok(r)
@@ -161,12 +141,7 @@ async fn choose_image() -> Result<String> {
 
 async fn upload_image(local_id: String) -> Result<String> {
     let options = UploadImageOptios { local_id };
-    let options = whatever!(to_js_value(&options), "options to js");
-    let res = handle_js_error(wx_js_sdk::upload_image(options).await)?;
-    let res = whatever!(
-        from_js_value::<UploadImageResult>(res),
-        "convert upload image result"
-    );
+    let res = whatever!(wx_js_sdk::upload_image(&options).await, "upload image");
     log_to_dom(&format!("{:?}", &res));
     Ok(res.server_id)
 }

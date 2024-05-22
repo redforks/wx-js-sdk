@@ -8,47 +8,21 @@
         });
     };
 
-    ns.checkJsApi = function (apiList) {
-        let saved_resolve, saved_reject;
-        let r = new Promise((resolve, reject) => {
-            saved_resolve = resolve;
-            saved_reject = reject;
-        });
-        wx.checkJsApi({
-            jsApiList: apiList,
-            success: saved_resolve,
-            fail: saved_reject,
-        });
-        return r;
-    };
-
-    ns.chooseImage = function (options) {
-        let saved_resolve, saved_reject;
-        let r = new Promise((resolve, reject) => {
-            saved_resolve = resolve;
-            saved_reject = reject;
-        });
-        options = {
-            success: saved_resolve,
-            fail: saved_reject,
-            ...options,
+    function wrap(f) {
+        return (options) => {
+            let saved_resolve;
+            let r = new Promise((resolve) => {
+                saved_resolve = resolve;
+            });
+            wx[f]({
+                complete: saved_resolve,
+                ...options,
+            });
+            return r;
         };
-        wx.chooseImage(options);
-        return r;
-    };
+    }
 
-    ns.uploadImage = function (options) {
-        let saved_resolve, saved_reject;
-        let r = new Promise((resolve, reject) => {
-            saved_resolve = resolve;
-            saved_reject = reject;
-        });
-        options = {
-            success: saved_resolve,
-            fail: saved_reject,
-            ...options,
-        };
-        wx.uploadImage(options);
-        return r;
-    };
+    ns.checkJsApi = wrap("checkJsApi");
+    ns.chooseImage = wrap("chooseImage");
+    ns.uploadImage = wrap("uploadImage");
 })((window.wx_api = window.wx_api || {}), wx);

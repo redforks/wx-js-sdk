@@ -8,6 +8,8 @@ doctest = false
 
 [dependencies]
 serde = { version = "1.0.202", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+snafu = "0.8.2"
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 

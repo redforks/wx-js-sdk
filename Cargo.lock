@@ -345,6 +345,8 @@ name = "wx-js-sdk"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde-wasm-bindgen",
+ "snafu",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
