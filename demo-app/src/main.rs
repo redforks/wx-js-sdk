@@ -5,7 +5,10 @@ use serde_wasm_bindgen::{from_value as from_js_value, to_value as to_js_value};
 use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, Document, HtmlElement};
-use wx_js_sdk::{check_js_api, ChooseImageOptions, ChooseImageResult, Config};
+use wx_js_sdk::{
+    check_js_api, ChooseImageOptions, ChooseImageResult, Config, UploadImageOptios,
+    UploadImageResult,
+};
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
 
@@ -51,8 +54,12 @@ async fn go() -> Result<()> {
     log_to_dom("check jsapi succeed");
 
     log_to_dom("choose image...");
-    choose_image().await?;
+    let local_id = choose_image().await?;
     log_to_dom("choose image succeed");
+
+    log_to_dom("Upload image...");
+    let _server_id = upload_image(local_id).await?;
+    log_to_dom("upload image succeed");
 
     Ok(())
 }
@@ -138,15 +145,28 @@ fn error_to_dom(s: &str) {
     log_to_dom(s)
 }
 
-async fn choose_image() -> Result<()> {
+async fn choose_image() -> Result<String> {
     let options = ChooseImageOptions { count: 1 };
-    let options = whatever!(to_js_value(&options), "choose image to js");
+    let options = whatever!(to_js_value(&options), "options to js");
     let ids = handle_js_error(wx_js_sdk::choose_image(options).await)?;
-    let ids = whatever!(
+    let mut ids = whatever!(
         from_js_value::<ChooseImageResult>(ids),
         "convert choose image result"
     )
     .local_ids;
     log_to_dom(&format!("{:?}", ids));
-    Ok(())
+    let r = ids.remove(0);
+    Ok(r)
+}
+
+async fn upload_image(local_id: String) -> Result<String> {
+    let options = UploadImageOptios { local_id };
+    let options = whatever!(to_js_value(&options), "options to js");
+    let res = handle_js_error(wx_js_sdk::upload_image(options).await)?;
+    let res = whatever!(
+        from_js_value::<UploadImageResult>(res),
+        "convert upload image result"
+    );
+    log_to_dom(&format!("{:?}", &res));
+    Ok(res.server_id)
 }

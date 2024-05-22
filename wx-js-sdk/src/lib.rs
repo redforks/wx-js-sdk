@@ -31,6 +31,18 @@ pub struct ChooseImageResult {
     pub local_ids: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct UploadImageOptios {
+    #[serde(rename = "localId")]
+    pub local_id: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct UploadImageResult {
+    #[serde(rename = "serverId")]
+    pub server_id: String,
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = wx_api, catch)]
@@ -41,4 +53,7 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = wx_api, js_name=chooseImage, catch)]
     pub async fn choose_image(options: JsValue) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_namespace = wx_api, js_name=uploadImage, catch)]
+    pub async fn upload_image(options: JsValue) -> Result<JsValue, JsValue>;
 }
