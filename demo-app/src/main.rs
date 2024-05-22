@@ -6,7 +6,7 @@ use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, Document, HtmlElement};
 use wx_js_sdk::{
-    ChooseImageOptions, ChooseImageResult, Config, UploadImageOptios, UploadImageResult,
+    ChooseImageOptions, ChooseImageResult, Config, UploadImageOptions, UploadImageResult,
 };
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
@@ -140,7 +140,7 @@ async fn choose_image() -> Result<String> {
 }
 
 async fn upload_image(local_id: String) -> Result<String> {
-    let options = UploadImageOptios { local_id };
+    let options = UploadImageOptions { local_id };
     let res = whatever!(wx_js_sdk::upload_image(&options).await, "upload image");
     log_to_dom(&format!("{:?}", &res));
     Ok(res.server_id)

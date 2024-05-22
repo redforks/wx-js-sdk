@@ -1,5 +1,6 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use snafu::prelude::*;
+use serde_wasm_bindgen::{from_value, to_value};
+use snafu::{prelude::*, OptionExt, ResultExt};
 use wasm_bindgen::JsValue;
 
 #[derive(Serialize)]
@@ -26,21 +27,35 @@ impl Default for ChooseImageOptions {
     }
 }
 
-trait WxResponse: Sized {
-    fn err_msg(&self) -> &str;
+#[derive(Deserialize)]
+struct WxResponse<T> {
+    // https://github.com/serde-rs/serde/issues/1879
+    // can not set flatten and default the same time,
+    #[serde(rename = "errMsg")]
+    err_msg: String,
+    /// should be Some on success
+    #[serde(flatten)]
+    value: Option<T>,
+}
 
-    fn take_err_msg(self) -> String {
-        self.err_msg().to_owned()
-    }
-
-    fn to_result(self) -> Result<Self, JSApiError> {
-        if self.err_msg().ends_with(":ok") {
-            Ok(self)
+impl<T: DeserializeOwned> WxResponse<T> {
+    pub fn into_result(self) -> std::result::Result<T, JSApiError> {
+        if self.err_msg.ends_with(":ok") {
+            Ok(self.value.whatever_context("Should have value on Ok")?)
         } else {
             Err(JSApiError::ApiError {
-                message: self.take_err_msg(),
+                message: self.err_msg,
             })
         }
+    }
+
+    pub fn js_into_result(val: JsValue) -> Result<T, JSApiError> {
+        let v = Self::from_js(val)?;
+        v.into_result()
+    }
+
+    fn from_js(val: JsValue) -> Result<Self, JSApiError> {
+        from_value(val).whatever_context("decode response from js")
     }
 }
 
@@ -48,22 +63,10 @@ trait WxResponse: Sized {
 pub struct ChooseImageResult {
     #[serde(rename = "localIds")]
     pub local_ids: Vec<String>,
-    #[serde(rename = "errMsg")]
-    err_msg: String,
-}
-
-impl WxResponse for ChooseImageResult {
-    fn err_msg(&self) -> &str {
-        self.err_msg.as_ref()
-    }
-
-    fn take_err_msg(self) -> String {
-        self.err_msg
-    }
 }
 
 #[derive(Serialize)]
-pub struct UploadImageOptios {
+pub struct UploadImageOptions {
     #[serde(rename = "localId")]
     pub local_id: String,
 }
@@ -72,18 +75,6 @@ pub struct UploadImageOptios {
 pub struct UploadImageResult {
     #[serde(rename = "serverId")]
     pub server_id: String,
-    #[serde(rename = "errMsg")]
-    err_msg: String,
-}
-
-impl WxResponse for UploadImageResult {
-    fn err_msg(&self) -> &str {
-        self.err_msg.as_ref()
-    }
-
-    fn take_err_msg(self) -> String {
-        self.err_msg
-    }
 }
 
 mod inner {
@@ -121,19 +112,6 @@ pub enum JSApiError {
     },
 }
 
-async fn call<Req, Resp>(options: &Req) -> Result<Resp, JSApiError>
-where
-    Req: Serialize,
-    Resp: DeserializeOwned + WxResponse,
-{
-    use serde_wasm_bindgen::{from_value as from_js_value, to_value as to_js_value};
-
-    let options = whatever!(to_js_value(&options), "options to js");
-    let rv = inner::choose_image(options).await;
-    let rv = whatever!(from_js_value::<Resp>(rv), "convert response from js");
-    rv.to_result()
-}
-
 pub async fn config(options: &Config) -> Result<(), JSApiError> {
     use serde_wasm_bindgen::to_value as to_js_value;
     let options = whatever!(to_js_value(&options), "options to js");
@@ -144,9 +122,23 @@ pub async fn config(options: &Config) -> Result<(), JSApiError> {
 }
 
 pub async fn choose_image(options: &ChooseImageOptions) -> Result<ChooseImageResult, JSApiError> {
-    call(options).await
+    {
+        async move {
+            let options = whatever!(to_value(&options), "options to js");
+            let rv = inner::choose_image(options).await;
+            WxResponse::<ChooseImageResult>::js_into_result(rv)
+        }
+    }
+    .await
 }
 
-pub async fn upload_image(options: &UploadImageOptios) -> Result<UploadImageResult, JSApiError> {
-    call(options).await
+pub async fn upload_image(options: &UploadImageOptions) -> Result<UploadImageResult, JSApiError> {
+    {
+        async move {
+            let options = whatever!(to_value(&options), "options to js");
+            let rv = inner::upload_image(options).await;
+            WxResponse::<UploadImageResult>::js_into_result(rv)
+        }
+    }
+    .await
 }
