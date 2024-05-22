@@ -1,7 +1,7 @@
 use js_sys::wasm_bindgen::JsValue;
 use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{window, Document, HtmlElement};
+use web_sys::{Document, History, HtmlElement, Window};
 use wx_js_sdk::{ChooseImageOptions, UploadImageOptions};
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
@@ -21,6 +21,11 @@ fn handle_err(rv: Result<()>) {
 }
 
 async fn go() -> Result<()> {
+    log("change url by pushState()");
+    let h = history()?;
+    handle_js_error(h.push_state_with_url(&JsValue::NULL, "", Some("sub/url")))?;
+    log(&format!("current_url: {}", current_url()?));
+
     log("check js api...");
     log(&format!(
         "{:#?}",
@@ -32,6 +37,10 @@ async fn go() -> Result<()> {
     ));
     log("check js api succeed");
 
+    log("back to previous url...");
+    handle_js_error(h.go_with_delta(-1))?;
+    log(&format!("current_url: {}", current_url()?));
+
     log("choose image...");
     if let Some(local_id) = choose_image().await? {
         log("choose image succeed");
@@ -40,15 +49,36 @@ async fn go() -> Result<()> {
         let _server_id = upload_image(local_id).await?;
         log("upload image succeed");
     } else {
-        log("user cancelled");
+        log("user cancelle");
     }
 
     Ok(())
 }
 
-fn document() -> Result<Document> {
+fn window() -> Result<Window> {
+    use web_sys::window;
+
     let w = window().whatever_context("get window global object")?;
-    w.document().whatever_context("get document")
+    Ok(w)
+}
+
+fn history() -> Result<History> {
+    let w = window()?;
+    let h = handle_js_error(w.history())?;
+    Ok(h)
+}
+
+fn current_url() -> Result<String> {
+    let w = window()?;
+    let location = w.location();
+    Ok(whatever!(
+        handle_js_error(location.href()),
+        "get current page url"
+    ))
+}
+
+fn document() -> Result<Document> {
+    window()?.document().whatever_context("get document")
 }
 
 fn body(doc: &Document) -> Result<HtmlElement> {
