@@ -344,9 +344,12 @@ dependencies = [
 name = "wx-js-sdk"
 version = "0.1.0"
 dependencies = [
+ "gloo-net",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "snafu",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
 ]

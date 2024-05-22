@@ -1,25 +1,10 @@
-use gloo_net::http::Request;
 use js_sys::wasm_bindgen::JsValue;
-use serde::Deserialize;
 use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, Document, HtmlElement};
-use wx_js_sdk::{
-    ChooseImageOptions, Config, UploadImageOptions,
-};
+use wx_js_sdk::{ChooseImageOptions, UploadImageOptions};
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
-
-fn current_url_without_hash() -> Result<String> {
-    let w = window().whatever_context("get window global object")?;
-    let location = w.location();
-    let url = whatever!(handle_js_error(location.href()), "get current page url");
-    let url = url
-        .split('#')
-        .next()
-        .whatever_context("get url without hash")?;
-    Ok(url.to_owned())
-}
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -35,19 +20,7 @@ fn handle_err(rv: Result<()>) {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct SignUrlResponse {
-    sign: String,
-    timestamp: u32,
-    noncestr: String,
-}
-
 async fn go() -> Result<()> {
-    // Get current browser url
-    let resp = sign_url().await?;
-    log(&format!("{:?}", &resp));
-    config_jsapi(resp).await?;
-
     log("choose image...");
     if let Some(local_id) = choose_image().await? {
         log("choose image succeed");
@@ -60,36 +33,6 @@ async fn go() -> Result<()> {
     }
 
     Ok(())
-}
-
-async fn config_jsapi(sign: SignUrlResponse) -> Result<()> {
-    let config = Config {
-        debug: true,
-        app_id: "wx823ba6aecdee1404".to_owned(),
-        timestamp: sign.timestamp,
-        nonce_str: sign.noncestr,
-        signature: sign.sign,
-        js_api_list: vec![
-            "uploadImage".to_owned(),
-            "chooseImage".to_owned(),
-            "downloadImage".to_owned(),
-        ],
-    };
-
-    whatever!(wx_js_sdk::config(&config).await, "config");
-    Ok(())
-}
-
-async fn sign_url() -> Result<SignUrlResponse> {
-    let url = current_url_without_hash()?;
-    log(&format!("Sign url: {}", &url));
-    let req = whatever!(
-        Request::post("/api/wx/jsapi/sign-url").body(url),
-        "create request"
-    );
-    let resp = whatever!(req.send().await, "send request");
-    let resp = whatever!(resp.json::<SignUrlResponse>().await, "decode response");
-    Ok(resp)
 }
 
 fn document() -> Result<Document> {
