@@ -182,7 +182,7 @@ async fn auto_config() -> Result<()> {
             let sign = sign_url(url).await?;
             config(&Config {
                 debug: true,
-                app_id: "wx823ba6aecdee1404".to_owned(),
+                app_id: env!("WECHAT_APP_ID").to_owned(),
                 timestamp: sign.timestamp,
                 nonce_str: sign.noncestr,
                 signature: sign.sign,
