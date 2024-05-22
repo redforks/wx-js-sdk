@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[derive(Serialize)]
@@ -14,6 +14,23 @@ pub struct Config {
     pub js_api_list: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct ChooseImageOptions {
+    pub count: u8,
+}
+
+impl Default for ChooseImageOptions {
+    fn default() -> Self {
+        Self { count: 9 }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ChooseImageResult {
+    #[serde(rename = "localIds")]
+    pub local_ids: Vec<String>,
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = wx_api, catch)]
@@ -21,4 +38,7 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = wx_api, js_name=checkJsApi, catch)]
     pub async fn check_js_api(api_list: Vec<String>) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_namespace = wx_api, js_name=chooseImage, catch)]
+    pub async fn choose_image(options: JsValue) -> Result<JsValue, JsValue>;
 }
