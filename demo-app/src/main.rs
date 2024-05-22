@@ -1,12 +1,11 @@
 use gloo_net::http::Request;
 use js_sys::wasm_bindgen::JsValue;
 use serde::Deserialize;
-use serde_wasm_bindgen::{from_value as from_js_value, to_value as to_js_value};
 use snafu::{prelude::*, OptionExt};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, Document, HtmlElement};
 use wx_js_sdk::{
-    ChooseImageOptions, ChooseImageResult, Config, UploadImageOptions, UploadImageResult,
+    ChooseImageOptions, Config, UploadImageOptions,
 };
 
 type Result<T> = std::result::Result<T, snafu::Whatever>;
