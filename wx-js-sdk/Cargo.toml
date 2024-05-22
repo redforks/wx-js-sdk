@@ -15,3 +15,4 @@ wasm-bindgen-futures = "0.4.42"
 gloo-net = { version = "0.5.0", default-features = false, features = ["json", "http"] }
 web-sys = { version = "0.3.69", features = ["Location", "Window"] }
 js-sys = "0.3.69"
+linear-map = { version = "1.2.0", features = ["serde_impl"] }

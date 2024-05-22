@@ -21,6 +21,17 @@ fn handle_err(rv: Result<()>) {
 }
 
 async fn go() -> Result<()> {
+    log("check js api...");
+    log(&format!(
+        "{:#?}",
+        whatever!(
+            wx_js_sdk::check_js_api(vec!["chooseImage".to_string(), "uploadImage".to_string()])
+                .await,
+            "check js api"
+        )
+    ));
+    log("check js api succeed");
+
     log("choose image...");
     if let Some(local_id) = choose_image().await? {
         log("choose image succeed");

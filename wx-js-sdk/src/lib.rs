@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use snafu::{prelude::*, OptionExt, ResultExt};
@@ -111,7 +112,7 @@ mod inner {
         pub async fn config(config: JsValue) -> Result<(), JsValue>;
 
         #[wasm_bindgen(js_namespace = wx_api, js_name=checkJsApi)]
-        async fn check_js_api(api_list: Vec<String>) -> JsValue;
+        pub async fn check_js_api(options: JsValue) -> JsValue;
 
         #[wasm_bindgen(js_namespace = wx_api, js_name=chooseImage)]
         pub async fn choose_image(options: JsValue) -> JsValue;
@@ -162,6 +163,29 @@ pub async fn upload_image(options: &UploadImageOptions) -> Result<UploadImageRes
     let options = whatever!(to_value(&options), "options to js");
     let rv = inner::upload_image(options).await;
     WxResponse::<UploadImageResult>::js_into_result(rv)
+}
+
+#[derive(Serialize, Debug)]
+struct CheckJsApiOptions {
+    #[serde(rename = "jsApiList")]
+    pub js_api_list: Vec<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct CheckJsApiResult {
+    #[serde(rename = "checkResult")]
+    pub check_result: LinearMap<String, bool>,
+}
+
+pub async fn check_js_api(api_list: Vec<String>) -> Result<LinearMap<String, bool>> {
+    auto_config().await?;
+
+    let options = CheckJsApiOptions {
+        js_api_list: api_list,
+    };
+    let options = whatever!(to_value(&options), "options to js");
+    let rv = inner::check_js_api(options).await;
+    WxResponse::<CheckJsApiResult>::js_into_result(rv).map(|v| v.check_result)
 }
 
 const INIT_STATE_UNINITIALIZED: u8 = 0;
