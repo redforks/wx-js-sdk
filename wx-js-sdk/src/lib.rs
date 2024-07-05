@@ -3,7 +3,7 @@ use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use snafu::{prelude::*, OptionExt, ResultExt};
-use std::sync::atomic::AtomicU8;
+use std::{collections::HashMap, sync::atomic::AtomicU8};
 use wasm_bindgen::JsValue;
 use web_sys::window;
 
@@ -171,22 +171,22 @@ pub async fn upload_image(options: &UploadImageOptions) -> Result<UploadImageRes
 /// 客户端发起微信支付api 调用的参数
 ///
 /// <https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_1_4.shtml>
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct PayOptions {
-    /// 应用ID
-    pub app_id: String,
-    /// 时间戳
-    pub time_stamp: String,
-    /// 随机字符串
-    pub nonce_str: String,
-    /// 订单详情扩展字符串
-    pub package: String,
-    /// 签名方式
-    pub sign_type: &'static str,
-    /// 签名
-    pub pay_sign: String,
-}
+// #[derive(Serialize, Debug)]
+// #[serde(rename_all = "camelCase")]
+// pub struct PayOptions {
+//     /// 应用ID
+//     pub app_id: String,
+//     /// 时间戳
+//     pub time_stamp: String,
+//     /// 随机字符串
+//     pub nonce_str: String,
+//     /// 订单详情扩展字符串
+//     pub package: String,
+//     /// 签名方式
+//     pub sign_type: &'static str,
+//     /// 签名
+//     pub pay_sign: String,
+// }
 
 #[derive(Deserialize)]
 pub struct PayResult {
@@ -205,7 +205,7 @@ impl PayResult {
     }
 }
 
-pub async fn pay(options: &PayOptions) -> Result<PayResult> {
+pub async fn pay(options: &HashMap<String, String>) -> Result<PayResult> {
     auto_config().await?;
 
     let options = whatever!(to_value(&options), "options to js");
