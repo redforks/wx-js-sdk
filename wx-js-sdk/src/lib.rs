@@ -188,23 +188,6 @@ pub async fn upload_image(options: &UploadImageOptions) -> Result<UploadImageRes
 //     pub pay_sign: String,
 // }
 
-#[derive(Deserialize)]
-pub struct PayResult {
-    pub err_msg: String,
-}
-
-impl PayResult {
-    pub fn into_result(self) -> Result<()> {
-        if self.err_msg.ends_with(":ok") {
-            Ok(())
-        } else {
-            Err(JSApiError::ApiError {
-                message: self.err_msg,
-            })
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PayRequest {
@@ -216,12 +199,12 @@ pub struct PayRequest {
     pub pay_sign: String,
 }
 
-pub async fn pay(options: &PayRequest) -> Result<PayResult> {
+pub async fn pay(options: &PayRequest) -> Result<()> {
     auto_config().await?;
 
     let options = whatever!(to_value(&options), "options to js");
     let rv = inner::pay(options).await;
-    WxResponse::<PayResult>::js_into_result(rv)
+    WxResponse::<()>::js_into_result(rv)
 }
 
 #[derive(Serialize, Debug)]
