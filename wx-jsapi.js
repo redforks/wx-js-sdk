@@ -28,7 +28,6 @@
       let r = new Promise((resolve) => {
         saved_resolve = resolve;
       });
-      alert(JSON.stringify(options));
       WeixinJSBridge.invoke(f, options, saved_resolve);
       return r;
     };

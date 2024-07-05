@@ -205,7 +205,7 @@ impl PayResult {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PayRequest {
     pub app_id: String,
