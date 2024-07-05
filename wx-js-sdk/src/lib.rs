@@ -208,6 +208,7 @@ impl PayResult {
 pub async fn pay(options: &HashMap<String, String>) -> Result<PayResult> {
     auto_config().await?;
 
+    assert!(!options.is_empty());
     let options = whatever!(to_value(&options), "options to js");
     let rv = inner::pay(options).await;
     WxResponse::<PayResult>::js_into_result(rv)
