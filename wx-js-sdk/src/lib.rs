@@ -213,7 +213,6 @@ pub struct PayRequest {
     pub nonce_str: String,
     pub package: String,
     pub sign_type: String,
-    pub timestamp: String,
     pub pay_sign: String,
 }
 
