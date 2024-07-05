@@ -3,7 +3,7 @@ use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use snafu::{prelude::*, OptionExt, ResultExt};
-use std::{collections::HashMap, sync::atomic::AtomicU8};
+use std::sync::atomic::AtomicU8;
 use wasm_bindgen::JsValue;
 use web_sys::window;
 
@@ -205,10 +205,21 @@ impl PayResult {
     }
 }
 
-pub async fn pay(options: &HashMap<String, String>) -> Result<PayResult> {
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayRequest {
+    pub app_id: String,
+    pub time_stamp: String,
+    pub nonce_str: String,
+    pub package: String,
+    pub sign_type: String,
+    pub timestamp: String,
+    pub pay_sign: String,
+}
+
+pub async fn pay(options: &PayRequest) -> Result<PayResult> {
     auto_config().await?;
 
-    assert!(!options.is_empty());
     let options = whatever!(to_value(&options), "options to js");
     let rv = inner::pay(options).await;
     WxResponse::<PayResult>::js_into_result(rv)
