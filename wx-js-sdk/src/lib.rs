@@ -37,7 +37,7 @@ impl Default for ChooseImageOptions {
 struct WxResponse<T> {
     // https://github.com/serde-rs/serde/issues/1879
     // can not set flatten and default the same time,
-    #[serde(rename = "errMsg")]
+    #[serde(rename = "errMsg", alias = "err_msg")]
     err_msg: String,
     /// should be Some on success
     #[serde(flatten)]
