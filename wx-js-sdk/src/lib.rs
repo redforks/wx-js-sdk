@@ -200,7 +200,7 @@ pub struct PayRequest {
 }
 
 pub async fn pay(options: &PayRequest) -> Result<()> {
-    auto_config().await?;
+    // auto_config().await?;
 
     let options = whatever!(to_value(&options), "options to js");
     let rv = inner::pay(options).await;
