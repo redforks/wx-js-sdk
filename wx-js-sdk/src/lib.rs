@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use js_sys::JSON;
 use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
@@ -128,7 +129,8 @@ mod inner {
 #[derive(Debug, snafu::Snafu)]
 pub enum JSApiError {
     /// Error on config()
-    ConfigError { err: JsValue },
+    #[snafu(display("初始化微信jsapi失败: {err}"))]
+    ConfigError { err: String },
 
     /// Error returned by wx-jsapi
     #[snafu(display("{message}"))]
@@ -147,7 +149,9 @@ async fn config(options: &Config) -> Result<()> {
     let options = whatever!(to_js_value(&options), "options to js");
     match inner::config(options).await {
         Ok(_) => Ok(()),
-        Err(err) => Err(JSApiError::ConfigError { err }),
+        Err(err) => Err(JSApiError::ConfigError {
+            err: JSON::stringify(&err).map_or_else(|_| "2c35df0".to_string(), |v| v.into()),
+        }),
     }
 }
 
