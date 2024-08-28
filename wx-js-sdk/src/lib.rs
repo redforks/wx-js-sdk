@@ -20,7 +20,9 @@ struct Config {
     pub nonce_str: String,
     pub signature: String,
     #[serde(rename = "jsApiList")]
-    pub js_api_list: Vec<String>,
+    pub js_api_list: Vec<&'static str>,
+    #[serde(rename = "openTagList")]
+    pub open_tag_list: Vec<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -256,11 +258,8 @@ async fn auto_config() -> Result<()> {
                 timestamp: sign.timestamp,
                 nonce_str: sign.noncestr,
                 signature: sign.sign,
-                js_api_list: vec![
-                    "uploadImage".to_owned(),
-                    "chooseImage".to_owned(),
-                    "downloadImage".to_owned(),
-                ],
+                js_api_list: vec!["uploadImage", "chooseImage", "downloadImage"],
+                open_tag_list: vec!["wx-open-launch-weapp"],
             })
             .await?;
             INIT_STATE.store(INIT_STATE_INITIALIZED, std::sync::atomic::Ordering::Relaxed);
