@@ -4,7 +4,7 @@ use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use snafu::{prelude::*, OptionExt, ResultExt};
-use std::sync::atomic::AtomicU8;
+use std::{future::Future, sync::atomic::AtomicU8};
 use wasm_bindgen::JsValue;
 use web_sys::window;
 
@@ -146,7 +146,7 @@ pub enum JSApiError {
     },
 }
 
-async fn config(options: &Config) -> Result<()> {
+async fn do_config(options: &Config) -> Result<()> {
     use serde_wasm_bindgen::to_value as to_js_value;
     let options = whatever!(to_js_value(&options), "options to js");
     match inner::config(options).await {
@@ -242,6 +242,10 @@ const INIT_STATE_INITIALIZING: u8 = 2;
 
 static INIT_STATE: AtomicU8 = AtomicU8::new(0);
 
+pub fn config() -> impl Future<Output = Result<()>> {
+    auto_config()
+}
+
 async fn auto_config() -> Result<()> {
     match INIT_STATE.compare_exchange(
         INIT_STATE_UNINITIALIZED,
@@ -252,8 +256,8 @@ async fn auto_config() -> Result<()> {
         Ok(_) => {
             let url = current_url_without_hash()?;
             let sign = sign_url(url).await?;
-            config(&Config {
-                debug: true,
+            do_config(&Config {
+                debug: false,
                 app_id: env!("WECHAT_APP_ID").to_owned(),
                 timestamp: sign.timestamp,
                 nonce_str: sign.noncestr,
