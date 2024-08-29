@@ -4,7 +4,7 @@ use linear_map::LinearMap;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use snafu::{prelude::*, OptionExt, ResultExt};
-use std::{future::Future, sync::atomic::AtomicU8};
+use std::sync::atomic::AtomicU8;
 use wasm_bindgen::JsValue;
 use web_sys::window;
 
@@ -146,7 +146,7 @@ pub enum JSApiError {
     },
 }
 
-async fn do_config(options: &Config) -> Result<()> {
+async fn call_config(options: &Config) -> Result<()> {
     use serde_wasm_bindgen::to_value as to_js_value;
     let options = whatever!(to_js_value(&options), "options to js");
     match inner::config(options).await {
@@ -242,8 +242,27 @@ const INIT_STATE_INITIALIZING: u8 = 2;
 
 static INIT_STATE: AtomicU8 = AtomicU8::new(0);
 
-pub fn config() -> impl Future<Output = Result<()>> {
-    auto_config()
+pub async fn config(force: bool) -> Result<()> {
+    if force {
+        do_config().await
+    } else {
+        auto_config().await
+    }
+}
+
+async fn do_config() -> Result<()> {
+    let url = current_url_without_hash()?;
+    let sign = sign_url(url).await?;
+    call_config(&Config {
+        debug: false,
+        app_id: env!("WECHAT_APP_ID").to_owned(),
+        timestamp: sign.timestamp,
+        nonce_str: sign.noncestr,
+        signature: sign.sign,
+        js_api_list: vec!["uploadImage", "chooseImage", "downloadImage"],
+        open_tag_list: vec!["wx-open-launch-weapp"],
+    })
+    .await
 }
 
 async fn auto_config() -> Result<()> {
@@ -254,18 +273,7 @@ async fn auto_config() -> Result<()> {
         std::sync::atomic::Ordering::Relaxed,
     ) {
         Ok(_) => {
-            let url = current_url_without_hash()?;
-            let sign = sign_url(url).await?;
-            do_config(&Config {
-                debug: false,
-                app_id: env!("WECHAT_APP_ID").to_owned(),
-                timestamp: sign.timestamp,
-                nonce_str: sign.noncestr,
-                signature: sign.sign,
-                js_api_list: vec!["uploadImage", "chooseImage", "downloadImage"],
-                open_tag_list: vec!["wx-open-launch-weapp"],
-            })
-            .await?;
+            do_config().await?;
             INIT_STATE.store(INIT_STATE_INITIALIZED, std::sync::atomic::Ordering::Relaxed);
         }
         Err(INIT_STATE_INITIALIZED) => {}
