@@ -1,9 +1,9 @@
 use gloo_net::http::Request;
 use js_sys::JSON;
 use linear_map::LinearMap;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_wasm_bindgen::{from_value, to_value};
-use snafu::{prelude::*, OptionExt, ResultExt};
+use snafu::{OptionExt, ResultExt, prelude::*};
 use std::sync::atomic::AtomicU8;
 use wasm_bindgen::JsValue;
 use web_sys::window;
@@ -107,7 +107,7 @@ pub struct UploadImageResult {
 }
 
 mod inner {
-    use wasm_bindgen::{prelude::*, JsValue};
+    use wasm_bindgen::{JsValue, prelude::*};
 
     #[wasm_bindgen]
     extern "C" {
@@ -272,7 +272,7 @@ async fn auto_config() -> Result<()> {
         std::sync::atomic::Ordering::Relaxed,
         std::sync::atomic::Ordering::Relaxed,
     ) {
-        Ok(_) => {
+        Ok(_) | Err(INIT_STATE_INITIALIZING) => {
             do_config().await?;
             INIT_STATE.store(INIT_STATE_INITIALIZED, std::sync::atomic::Ordering::Relaxed);
         }
