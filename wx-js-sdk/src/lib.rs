@@ -125,6 +125,9 @@ mod inner {
 
         #[wasm_bindgen(js_namespace = wx_api, js_name=pay)]
         pub async fn pay(options: JsValue) -> JsValue;
+
+        #[wasm_bindgen(js_namespace = wx, js_name=closeWindow)]
+        pub fn close_window();
     }
 }
 
@@ -173,6 +176,8 @@ pub async fn upload_image(options: &UploadImageOptions) -> Result<UploadImageRes
     let rv = inner::upload_image(options).await;
     WxResponse::<UploadImageResult>::js_into_result(rv)
 }
+
+pub use inner::close_window;
 
 /// 客户端发起微信支付api 调用的参数
 ///
