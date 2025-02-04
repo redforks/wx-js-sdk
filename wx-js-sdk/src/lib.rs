@@ -318,7 +318,7 @@ struct SignUrlResponse {
 
 async fn sign_url(url: String) -> Result<SignUrlResponse> {
     let req = whatever!(
-        Request::post("/api/wx/jsapi/sign-url").body(url),
+        Request::post(env!("WECHAT_JSAPI_SIGN_URL")).body(url),
         "create request"
     );
     let resp = whatever!(req.send().await, "send request");
